@@ -1,8 +1,10 @@
 package model
 
 type Response struct {
-	Message string      `json:"message"`
-	Code    string      `json:"code"`
-	Data    interface{} `json:"data"`
-	Status  bool        `json:"status"`
+	// The HTTP status code of the response.
+	Status uint16 `json:"status" example:"200"`
+	// The error message, if any, associated with the response.
+	Message string `json:"message,omitempty" example:"Error message."`
+	// Data returned by the request, if any.
+	Data interface{} `json:"data,omitempty" example:""`
 }

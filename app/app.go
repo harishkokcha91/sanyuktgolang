@@ -19,8 +19,16 @@ import (
 func Start() {
 	sanityCheck()
 	router := mux.NewRouter()
-	authRepository := domain.NewAuthRepository(getDbClient())
+	dbClient := getDbClient()
+	customerRepositoryDb := domain.NewCustomerRepositoryDb(dbClient)
+	ch := CustomerHandlers{service.NewCustomerService(customerRepositoryDb)}
+	authRepository := domain.NewAuthRepository(dbClient)
 	ah := AuthHandler{service.NewLoginService(authRepository, domain.GetRolePermissions())}
+
+	router.
+		HandleFunc("/customers", ch.getAllCustomers).
+		Methods(http.MethodGet).
+		Name("GetAllCustomers")
 
 	router.HandleFunc("/auth/generateotp", ah.GenerateOtp).Methods(http.MethodPost)
 	router.HandleFunc("/auth/verifyotp", ah.VerifyOtp).Methods(http.MethodPost)
