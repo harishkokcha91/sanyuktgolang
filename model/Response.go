@@ -2,7 +2,8 @@ package model
 
 type Response struct {
 	// The HTTP status code of the response.
-	Status uint16 `json:"status" example:"200"`
+	StatusCode uint16 `json:"code" example:"200"`
+	Status     bool   `json:"status" example:"true"`
 	// The error message, if any, associated with the response.
 	Message string `json:"message,omitempty" example:"Error message."`
 	// Data returned by the request, if any.

@@ -12,11 +12,11 @@ import (
 )
 
 type AuthService interface {
-	Login(model.LoginRequest) (*model.LoginResponse, *errs.AppError)
-	GenerateOtp(model.LoginRequest) (*model.LoginResponse, *errs.AppError)
-	VerifyOtp(model.LoginRequest) (*model.LoginResponse, *errs.AppError)
+	Login(model.LoginRequest) (*model.Response, *errs.AppError)
+	GenerateOtp(model.LoginRequest) (*model.Response, *errs.AppError)
+	VerifyOtp(model.LoginRequest) (*model.Response, *errs.AppError)
 	Verify(urlParams map[string]string) *errs.AppError
-	Refresh(request model.RefreshTokenRequest) (*model.LoginResponse, *errs.AppError)
+	Refresh(request model.RefreshTokenRequest) (*model.Response, *errs.AppError)
 }
 
 type DefaultAuthService struct {
@@ -24,7 +24,7 @@ type DefaultAuthService struct {
 	rolePermissions domain.RolePermissions
 }
 
-func (s DefaultAuthService) Refresh(request model.RefreshTokenRequest) (*model.LoginResponse, *errs.AppError) {
+func (s DefaultAuthService) Refresh(request model.RefreshTokenRequest) (*model.Response, *errs.AppError) {
 	if vErr := request.IsAccessTokenValid(); vErr != nil {
 		if vErr.Errors == jwt.ValidationErrorExpired {
 			// continue with the refresh token functionality
@@ -37,14 +37,14 @@ func (s DefaultAuthService) Refresh(request model.RefreshTokenRequest) (*model.L
 			if accessToken, appErr = domain.NewAccessTokenFromRefreshToken(request.RefreshToken); appErr != nil {
 				return nil, appErr
 			}
-			return &model.LoginResponse{AccessToken: accessToken}, nil
+			return &model.Response{Data: model.LoginResponse{AccessToken: accessToken}, Status: true, Message: "Success"}, nil
 		}
 		return nil, errs.NewAuthenticationError("invalid token")
 	}
 	return nil, errs.NewAuthenticationError("cannot generate a new access token until the current one expires")
 }
 
-func (s DefaultAuthService) Login(req model.LoginRequest) (*model.LoginResponse, *errs.AppError) {
+func (s DefaultAuthService) Login(req model.LoginRequest) (*model.Response, *errs.AppError) {
 	var appErr *errs.AppError
 	var login *domain.Login
 
@@ -64,10 +64,10 @@ func (s DefaultAuthService) Login(req model.LoginRequest) (*model.LoginResponse,
 		return nil, appErr
 	}
 
-	return &model.LoginResponse{AccessToken: accessToken, RefreshToken: refreshToken}, nil
+	return &model.Response{Data: model.LoginResponse{AccessToken: accessToken, RefreshToken: refreshToken}, Status: true, Message: "Success"}, nil
 }
 
-func (s DefaultAuthService) GenerateOtp(req model.LoginRequest) (*model.LoginResponse, *errs.AppError) {
+func (s DefaultAuthService) GenerateOtp(req model.LoginRequest) (*model.Response, *errs.AppError) {
 	var appErr *errs.AppError
 	var login *domain.Users
 
@@ -75,10 +75,10 @@ func (s DefaultAuthService) GenerateOtp(req model.LoginRequest) (*model.LoginRes
 		return nil, appErr
 	}
 	fmt.Println(login)
-	return &model.LoginResponse{AccessToken: "accessToken", RefreshToken: "refreshToken"}, nil
+	return &model.Response{Message: "An OTP has been sent to your given mobile number", Status: true}, nil
 }
 
-func (s DefaultAuthService) VerifyOtp(req model.LoginRequest) (*model.LoginResponse, *errs.AppError) {
+func (s DefaultAuthService) VerifyOtp(req model.LoginRequest) (*model.Response, *errs.AppError) {
 	var appErr *errs.AppError
 	var login *domain.Users
 
@@ -91,7 +91,7 @@ func (s DefaultAuthService) VerifyOtp(req model.LoginRequest) (*model.LoginRespo
 	if err != nil {
 		return nil, errs.NewAuthenticationError("not able to create token")
 	}
-	return &model.LoginResponse{AccessToken: token, RefreshToken: token}, nil
+	return &model.Response{Data: model.LoginResponse{AccessToken: token, RefreshToken: token}, Status: true, Message: "success"}, nil
 }
 
 func (s DefaultAuthService) Verify(urlParams map[string]string) *errs.AppError {
