@@ -79,7 +79,7 @@ func (d AuthRepositoryDb) FindBy(username, password string) (*Login, *errs.AppEr
 func (d AuthRepositoryDb) VerifyOtp(mobile, otp string) (*Users, *errs.AppError) {
 	var login Users
 
-	sqlVerify := `SELECT user_id FROM users_otp WHERE user_mobile = ? and user_otp = ?`
+	sqlVerify := `SELECT user_id,otp_verified FROM users_otp WHERE otp_verified=0 and user_mobile = ? and user_otp = ?`
 	logger.Debug(fmt.Sprintf("Sql %s: ...", sqlVerify))
 	err := d.client.Get(&login, sqlVerify, mobile, otp)
 	if err != nil {
@@ -90,7 +90,30 @@ func (d AuthRepositoryDb) VerifyOtp(mobile, otp string) (*Users, *errs.AppError)
 			return nil, errs.NewUnexpectedError("Unexpected database error")
 		}
 	}
+	_, error := d.updateUserVerified(mobile)
+	if error != nil {
+		return nil, errs.NewUnexpectedError("Unexpected database error")
+	}
+
 	return &login, nil
+}
+
+func (d AuthRepositoryDb) updateUserVerified(mobile string) (bool, *errs.AppError) {
+	sql := `UPDATE users_otp SET otp_verified=1,updated_on=now() where user_mobile=?`
+	insertResult, err := d.client.ExecContext(context.Background(), sql, mobile)
+	logger.Error(sql)
+	if err != nil {
+		logger.Error(err.Error())
+		return false, errs.NewAuthenticationError("Unable to update otp")
+	}
+	id, err := insertResult.LastInsertId()
+	if err != nil {
+		log.Fatalf("impossible to retrieve last inserted otp id: %s", err)
+		return false, errs.NewAuthenticationError("Impossible to retrieve last inserted otp id")
+	}
+	log.Printf("inserted id: %d", id)
+
+	return true, nil
 }
 
 func (d AuthRepositoryDb) FindByMobile(mobile string) (*Users, *errs.AppError) {
@@ -155,7 +178,7 @@ func (d AuthRepositoryDb) GenerateOtp(mobile string, userId int64) (bool, *errs.
 }
 
 func (d AuthRepositoryDb) updateOtpForUser(mobile string) (bool, *errs.AppError) {
-	sql := `UPDATE users_otp SET user_otp = ? , created_on=now(),updated_on=now() where user_mobile=?`
+	sql := `UPDATE users_otp SET user_otp = ?,otp_verified=0,updated_on=now() where user_mobile=?`
 	insertResult, err := d.client.ExecContext(context.Background(), sql, getRandomSixDigit(), mobile)
 	logger.Error(sql)
 	if err != nil {
