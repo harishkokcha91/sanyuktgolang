@@ -36,6 +36,7 @@ func Start() {
 	router.HandleFunc("/auth/register", ah.NotImplementedHandler).Methods(http.MethodPost)
 	router.HandleFunc("/auth/refresh", ah.Refresh).Methods(http.MethodPost)
 	router.HandleFunc("/auth/verify", ah.Verify).Methods(http.MethodGet)
+	router.HandleFunc("/updateUser", ah.UpdateUser).Methods(http.MethodPost)
 
 	address := os.Getenv("SERVER_ADDRESS")
 	port := os.Getenv("SERVER_PORT")

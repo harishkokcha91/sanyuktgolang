@@ -13,6 +13,7 @@ import (
 
 type AuthService interface {
 	Login(model.LoginRequest) (*model.Response, *errs.AppError)
+	UpdateUser(model.LoginRequest) (*model.Response, *errs.AppError)
 	GenerateOtp(model.LoginRequest) (*model.Response, *errs.AppError)
 	VerifyOtp(model.LoginRequest) (*model.Response, *errs.AppError)
 	Verify(urlParams map[string]string) *errs.AppError
@@ -67,6 +68,16 @@ func (s DefaultAuthService) Login(req model.LoginRequest) (*model.Response, *err
 	return &model.Response{Data: model.LoginResponse{AccessToken: accessToken, RefreshToken: refreshToken}, Status: true, Message: "Success"}, nil
 }
 
+func (s DefaultAuthService) UpdateUser(req model.LoginRequest) (*model.Response, *errs.AppError) {
+	var appErr *errs.AppError
+
+	if _, appErr = s.repo.UpdateUser(req.Username, req.UserId); appErr != nil {
+		return nil, appErr
+	}
+
+	return &model.Response{Status: true, Message: "User updated successfully"}, nil
+}
+
 func (s DefaultAuthService) GenerateOtp(req model.LoginRequest) (*model.Response, *errs.AppError) {
 	var appErr *errs.AppError
 	var login *domain.Users
@@ -91,7 +102,8 @@ func (s DefaultAuthService) VerifyOtp(req model.LoginRequest) (*model.Response, 
 	if err != nil {
 		return nil, errs.NewAuthenticationError("not able to create token")
 	}
-	return &model.Response{Data: model.LoginResponse{AccessToken: token, RefreshToken: token}, Status: true, Message: "success"}, nil
+
+	return &model.Response{Data: model.LoginResponse{AccessToken: token, RefreshToken: token, UserName: login.Name.String}, Status: true, Message: "success"}, nil
 }
 
 func (s DefaultAuthService) Verify(urlParams map[string]string) *errs.AppError {

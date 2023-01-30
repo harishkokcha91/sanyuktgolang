@@ -16,6 +16,7 @@ import (
 
 type AuthRepository interface {
 	FindBy(username string, password string) (*Login, *errs.AppError)
+	UpdateUser(username string, user_id string) (bool, *errs.AppError)
 	VerifyOtp(mobile string, otp string) (*Users, *errs.AppError)
 	FindByMobile(mobile string) (*Users, *errs.AppError)
 	GenerateAndSaveRefreshTokenToStore(authToken AuthToken) (string, *errs.AppError)
@@ -76,10 +77,29 @@ func (d AuthRepositoryDb) FindBy(username, password string) (*Login, *errs.AppEr
 	return &login, nil
 }
 
+func (d AuthRepositoryDb) UpdateUser(username, user_id string) (bool, *errs.AppError) {
+	print("Harish inserted " + username)
+	sql := `UPDATE sanyukt_users SET updated_on=now(),user_name=?  where user_id=?`
+	insertResult, err := d.client.ExecContext(context.Background(), sql, username, user_id)
+	logger.Error(sql)
+	if err != nil {
+		logger.Error(err.Error())
+		return false, errs.NewAuthenticationError("Unable to update user")
+	}
+	id, err := insertResult.LastInsertId()
+	if err != nil {
+		log.Fatalf("impossible to retrieve last inserted otp id: %s", err)
+		return false, errs.NewAuthenticationError("Impossible to retrieve last inserted otp id")
+	}
+	log.Printf("inserted id: %d", id)
+
+	return true, nil
+}
+
 func (d AuthRepositoryDb) VerifyOtp(mobile, otp string) (*Users, *errs.AppError) {
 	var login Users
 
-	sqlVerify := `SELECT user_id,otp_verified FROM users_otp WHERE otp_verified=0 and user_mobile = ? and user_otp = ?`
+	sqlVerify := `SELECT user_id FROM users_otp WHERE otp_verified=0 and user_mobile = ? and user_otp = ?`
 	logger.Debug(fmt.Sprintf("Sql %s: ...", sqlVerify))
 	err := d.client.Get(&login, sqlVerify, mobile, otp)
 	if err != nil {
@@ -93,6 +113,18 @@ func (d AuthRepositoryDb) VerifyOtp(mobile, otp string) (*Users, *errs.AppError)
 	_, error := d.updateUserVerified(mobile)
 	if error != nil {
 		return nil, errs.NewUnexpectedError("Unexpected database error")
+	}
+
+	selectUser := `SELECT * FROM sanyukt_users WHERE user_id=?`
+	logger.Debug(fmt.Sprintf("Sql %s: ...", selectUser))
+	err1 := d.client.Get(&login, selectUser, login.Id)
+	if err1 != nil {
+		if err1 == sql.ErrNoRows {
+			return nil, errs.NewAuthenticationError("User details not found")
+		} else {
+			logger.Error("Error while verifying login request from database: " + err.Error())
+			return nil, errs.NewUnexpectedError("Unexpected database error")
+		}
 	}
 
 	return &login, nil

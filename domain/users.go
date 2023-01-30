@@ -11,5 +11,5 @@ type Users struct {
 	Otp       string         `db:"user_otp"`
 	Role      string         `db:"user_role"`
 	CreatedOn string         `db:"created_on"`
-	UpdateOn  string         `db:"UpdatedOn"`
+	UpdateOn  string         `db:"updated_on"`
 }

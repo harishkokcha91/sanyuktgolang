@@ -5,4 +5,5 @@ type LoginRequest struct {
 	Password string `json:"password"`
 	Mobile   string `json:"user_mobile"`
 	Otp      string `json:"user_otp"`
+	UserId   string `json:"user_id"`
 }

@@ -2,6 +2,7 @@ package app
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"sanyuktgolang/logger"
 	"sanyuktgolang/model"
@@ -26,7 +27,7 @@ func (h AuthHandler) GenerateOtp(w http.ResponseWriter, r *http.Request) {
 
 		response, appErr := h.service.GenerateOtp(loginRequest)
 		if appErr != nil {
-			writeResponse(w, appErr.Code, appErr.AsMessage())
+			writeResponse(w, appErr.Code, appErr.AsMessage().Message)
 		} else {
 			writeResponse(w, http.StatusOK, *response)
 		}
@@ -42,7 +43,7 @@ func (h AuthHandler) VerifyOtp(w http.ResponseWriter, r *http.Request) {
 	} else {
 		response, appErr := h.service.VerifyOtp(loginRequest)
 		if appErr != nil {
-			writeResponse(w, appErr.Code, appErr.AsMessage())
+			writeResponse(w, appErr.Code, appErr.AsMessage().Message)
 		} else {
 			writeResponse(w, http.StatusOK, *response)
 		}
@@ -58,7 +59,22 @@ func (h AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	} else {
 		token, appErr := h.service.Login(loginRequest)
 		if appErr != nil {
-			writeResponse(w, appErr.Code, appErr.AsMessage())
+			writeResponse(w, appErr.Code, appErr.AsMessage().Message)
+		} else {
+			writeResponse(w, http.StatusOK, *token)
+		}
+	}
+}
+
+func (h AuthHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
+	var loginRequest model.LoginRequest
+	if err := json.NewDecoder(r.Body).Decode(&loginRequest); err != nil {
+		logger.Error("Error while decoding login request: " + err.Error())
+		w.WriteHeader(http.StatusBadRequest)
+	} else {
+		token, appErr := h.service.UpdateUser(loginRequest)
+		if appErr != nil {
+			writeResponse(w, appErr.Code, appErr.AsMessage().Message)
 		} else {
 			writeResponse(w, http.StatusOK, *token)
 		}
@@ -98,7 +114,7 @@ func (h AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	} else {
 		token, appErr := h.service.Refresh(refreshRequest)
 		if appErr != nil {
-			writeResponse(w, appErr.Code, appErr.AsMessage())
+			writeResponse(w, appErr.Code, appErr.AsMessage().Message)
 		} else {
 			writeResponse(w, http.StatusOK, *token)
 		}
@@ -119,6 +135,13 @@ func authorizedResponse() map[string]bool {
 func writeResponse(w http.ResponseWriter, code int, data interface{}) {
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(code)
+	print(code)
+	print(fmt.Sprint(data))
+	if code != http.StatusOK {
+		if str, ok := data.(string); ok {
+			data = model.Response{Status: false, StatusCode: uint16(code), Message: string(str)}
+		}
+	}
 	if err := json.NewEncoder(w).Encode(data); err != nil {
 		panic(err)
 	}
