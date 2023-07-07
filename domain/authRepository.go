@@ -62,7 +62,7 @@ func (d AuthRepositoryDb) GenerateAndSaveRefreshTokenToStore(authToken AuthToken
 
 func (d AuthRepositoryDb) FindBy(username, password string) (*Login, *errs.AppError) {
 	var login Login
-
+	fmt.Println("FindBy")
 	sqlVerify := `SELECT username, customer_id, role FROM users WHERE username = ? and password = ?`
 	logger.Debug(fmt.Sprintf("Sql %s: ...", sqlVerify))
 	err := d.client.Get(&login, sqlVerify, username, password)

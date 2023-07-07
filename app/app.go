@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,6 +12,8 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
@@ -20,6 +23,10 @@ func Start() {
 	sanityCheck()
 	router := mux.NewRouter()
 	dbClient := getDbClient()
+	mongoDbClient := connectMongoDB()
+	dn := domain.NewUserProfileRepositoryDb(mongoDbClient)
+	dn.FindAll("sdh")
+	fmt.Println("Hello")
 	customerRepositoryDb := domain.NewCustomerRepositoryDb(dbClient)
 	ch := CustomerHandlers{service.NewCustomerService(customerRepositoryDb)}
 	authRepository := domain.NewAuthRepository(dbClient)
@@ -63,6 +70,26 @@ func getDbClient() *sqlx.DB {
 	return client
 }
 
+func connectMongoDB() *mongo.Client {
+	client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	err = client.Connect(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//ping the database
+	err = client.Ping(ctx, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("Connected to MongoDB")
+	return client
+}
 func sanityCheck() {
 	envProps := []string{
 		"SERVER_ADDRESS",

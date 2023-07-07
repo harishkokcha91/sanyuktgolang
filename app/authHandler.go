@@ -134,6 +134,7 @@ func authorizedResponse() map[string]bool {
 
 func writeResponse(w http.ResponseWriter, code int, data interface{}) {
 	w.Header().Add("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:8000")
 	w.WriteHeader(code)
 	print(code)
 	print(fmt.Sprint(data))
